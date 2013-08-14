@@ -1,0 +1,517 @@
+#---------------------#
+# Script by Dzikoysk  #
+# Name: UniqueParkour #
+# Version: 0.1 Build  #
+# Skript: Beta 10     #
+#---------------------#
+
+#================================#
+#    Licencja | UniqueParkour    #
+#         by Dzikoysk            #
+#--------------------------------#
+# ~ Nie zezwalam na:             #
+# - Zarabianie na skrypcie       #
+# - Przerabianie/modyfikowanie   #
+# zmienianie tresci dla grona    #
+# publicznego                    #
+# - Wykorzystywanie kodu skryptu #
+# w swoich skryptach (np. kod na #
+# licnik w exp, timmer)          #
+# - Udostepnianiu skryptu innym* #
+# - Udostepniania skryptu w      #
+# paczkach plikow serwerowch itp #
+# - Usuwanie tresci              #
+# zawierajacych autora           #
+# - Podszywaniu sie pod autora   #
+# ~ Zezwalam na:                 #
+# - Modyfikowanie wiadomosci     #
+# skryptu na wlasne potrzeby     #
+# - Dopisywanie fragmentow na    #
+# wlasne potrzeby                #
+# * - Tylko za zgoda autora      #
+#--------------------------------#
+# Mylnie odczytana licencja nie  #
+# zwalnia z przestrzegania jej   #
+#================================#
+
+#---------------------------------------------------------------#
+#                                                               #
+#                                                               #
+#                                                               #
+#                             Config                            #
+#                                                               #
+#                                                               #
+#                                                               #
+#---------------------------------------------------------------#
+options:
+
+#----------------------#
+#    General Config    #
+#----------------------#
+
+	# Tag wyswietlany przed wiadomosciami skryptu:
+	tag: &6[Parkour]
+	
+	# Tag na tabliczkach:
+	sign.tag: [Parkour]
+	
+	# Nazwa pliku sk:
+	sk: UniqueParkour
+	
+	# Jezyk komend (pl/eng):
+	lang: pl
+	
+	# Color function:
+	c1: &a
+	c2: &6
+	error: &c
+
+#----------------------#
+#    Timmer Config     #
+#----------------------#
+
+	xpTimmer: true
+
+#----------------------#
+# Teleportation Config #
+#----------------------#
+	
+	# Czy po przejsciu/wyjsciu z parkoura ma teleportowac do lobby(true), czy na poprzednia pozycje gracza(false):
+	tpLobby: true
+	
+	# Czy wlaczyc cooldown przed teleportacja:
+	tpCooldown: false
+
+	
+	
+	
+#---------------------------------------------------------------#
+#                                                               #
+#                                                               #
+#                                                               #
+#                             Skrypt                            #
+#                              Code                             #
+#                                                               #
+#                                                               #
+#                                                               #
+#---------------------------------------------------------------#
+
+# Variables
+variables:
+	{parkour.player.%player%.lvl} = 0
+	{parkour.player.%player%.timmer-mili} = 0
+	{parkour.player.%player%.timmer-sec} = 0
+	{parkour.player.%player%.start} = false
+	
+# Manage options
+options:
+	version: 0.1 Build
+	permissions: "{@error}Nie masz uprawnien do tej komendy"	
+
+# Basic command	
+command /parkour [<text>] [<text>]:
+	aliases: pk
+	trigger:
+		if arg 1 is "list" or "lista":
+			if {parkour.list-number} is 0:
+				send "{@error}Nie ma zadnych Parkour'ow!"
+				stop
+			if {parkour.list-number} is greater than 0:
+				send "{@tag} {@c1}Parkour {@c2}({@c1}%{parkour.list-number}%{@c2}){@c1}: {@c2}%{parkour.list.list::*}%"
+				stop
+		if arg 1 is "create" or "stworz":
+			if player has permissions "parkour.create" or "parkour.admin":
+				if arg 2 is set:
+					if {parkour.%arg 2%.parkour} is true:
+						send "{@tag} {@error}Istnieje juz Parkour o takiej nazwie!"
+						stop
+					else:
+						set {parkour.parkour.%arg 2%.parkour} to true
+						set {parkour.parkour.%arg 2%.name} to "%arg 2%"
+						add "%arg 2%" to {parkour.list.list::*}
+						add 1 to {parkour.list-number}
+						send "{@tag} {@c1}Stworzono parkour o nazwie {@c2}%arg 2%{@c1}!"
+						stop
+				else:
+					send "{@tag} {@error}Podaj nazwe parkoura"
+					stop
+			else:
+				send {@permissions}
+				stop
+		if arg 1 is "delete" or "usun":
+			if player has permissions "parkour.delete" or "parkour.admin":
+				if arg 2 is set:
+					if {parkour.parkour.%arg 2%.parkour} is true:
+						set {parkour.parkour.%arg 2%.parkour} to false
+						set {parkour.parkour.%arg 2%.endset} to false
+						remove {parkour.parkour.%arg 2%.name} from {parkour.list.list::*}
+						remove 1 from {parkour.list-number}
+						clear {parkour.parkour.%arg 2%.spawn}
+						clear {parkour.parkour.%arg 2%.name}
+						send "{@tag} {@c1}Usunieto parkour {@c2}%arg 2%"
+						stop
+					else:
+						send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+						stop
+				else:
+					send "{@tag} {@error}Podaj nazwe Parkoura!"
+					stop
+			else:
+				send {@permissions}
+				stop
+		if arg 1 is "setlobby" or "ustawlobby":
+			if player has permissions "parkour.setlobby" or "parkour.admin":
+				set {parkour.lobby} to location of player
+				send "{@tag} {@c1}Ustawiono lobby!"
+				stop
+			else:
+				send {@permissions}
+				stop
+		if arg 1 is "setspawn" or "ustawspawn":
+			if player has permissions "parkour.setspawn":
+				if arg 2 is set:
+					if {parkour.parkour.%arg 2%.parkour} is true:
+						set {parkour.parkour.%arg 2%.spawn} to location of player
+						set {parkour.parkour.%arg 2%.endset} to true
+						send "{@tag} {@c1}Ustawiono spawn dla {@c2}%arg 2%{@c1}!"
+						stop
+					else:
+						send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+						stop
+				else:
+					send "{@tag} {@error}Podaj nazwe parkoura!"
+					stop
+			else:
+				send {@permissions}
+				stop
+		if arg 1 is "join" or "dolacz":
+			if player has permissions "parkour.join" or "parkour.default":
+				if arg 2 is set:
+					if {parkour.parkour.%arg 2%.parkour} is true:
+						if {parkour.parkour.%arg 2%.endset} is true:
+							if {parkour.config.tpCooldown} is true:
+								set {parkour.player.%name of player%.back} to location of player
+								wait 1 tick
+								set {parkour.player.%name of player%.lvl} to player's level
+								teleport player to {parkour.parkour.%arg 2%.spawn}
+								set {parkour.player.%name of player%.parkour} to true
+								set {parkour.player.%name of player%.parkour.name} to "%arg 2%"
+								send "{@tag} {@c1}Witaj na parkourze!"
+								stop
+							else:
+								send "&7Czekaj 5 sekund"
+								apply slowness 2 to player for 10 seconds
+								apply blindness 1 to player for 10 seconds
+								wait 5 seconds
+								set {parkour.player.%name of player%.lvl} to player's level
+								set {parkour.player.%name of player%.back} to location of player
+								set {parkour.player.%name of player%.parkour} to true
+								set {parkour.player.%name of player%.parkour.name} to "%arg 2%"
+								teleport player to {parkour.parkour.%arg 2%.spawn}
+								remove blindness from player
+								remove slowness from player
+								send "{@tag} {@c1}Witaj na parkourze!"
+								stop
+						else:
+							send "{@tag} {@error}Nie mozna dolaczyc, poniewaz parkour nie zostal jeszcze skonfigurowany!"
+							stop
+					else:
+						send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+						stop
+				else:
+					send "{@tag} {@error}Podaj nazwe parkoura!"
+					stop
+			else:
+				send {@permissions}
+				stop
+		if arg 1 is "leave" or "wyjdz" or "opusc":
+			if player has permissions "parkour.leave" or "parkour.default":
+				if {parkour.player.%name of player%.parkour} is true:
+					set {parkour.player.%name of player%.parkour} to false
+					if {parkour.config.tpLobby} is true:
+						teleport player to {parkour.lobby}
+					if {parkour.config.tpLobby} is false:
+						teleport player to {parkour.player.%name of player%.back}
+					clear {parkour.player.%name of player%.parkour.name}
+					clear {parkour.player.%name of player%.back}
+					set the player's level to 0
+					set level progress of the player to 0.0
+					set {parkour.player.%name of player%.timmer-sec} to 0
+					set {parkour.player.%name of player%.timmer-mili} to 0
+					set the player's level to {parkour.player.%name of player%.lvl}
+					clear {parkour.player.%name of player%.lvl}
+					send "{@tag} {@c1}Opuszczono parkour!"
+					stop
+				else:
+					send "{@tag} {@error}Nie jestes na parkourze!"
+					stop
+			else:
+				send {@permissions}
+				stop
+		if arg 1 is "reload" or "przeladuj":
+			if player has permissions "parkour.reload" or "parkour.przeladuj":
+				make console execute command "sk reload Parkour"
+				wait 1 tick
+				set {parkour.config.tpCooldown} to {@tpCooldown}
+				set {parkour.config.tpLobby} to {@tpLobby}
+				set {parkour.config.xpTimmer} to {@xpTimmer}
+				wait 1 tick
+				send "{@tag} &aPrzeladowano"
+				stop
+		if arg 1 is "info" or "author" or "autor":
+			send "&8--------------------------------"
+			send " &7Autor: &aDzikoysk"
+			send " &7Nazwa: &aUniqueParkour"
+			send "&7 &7&nStrona:&a &nwww.Dzikoysk.net"
+			send "&8--------------------------------"
+			stop
+		if arg 1 is not "list" or "lista" or "create" or "stworz" or "delete" or "usun" or "ustawlobby" or "setlobby" or "setspawn" or "ustawspawn":
+			if arg 1 is not "lobby" or "join" or "dolacz" or "leave" or "wyjdz" or "opusc" or "reload" or "przeladuj" or "info" or "author" or "autor":
+				send "{@tag} {@error}Nie ma takiej komendy!"
+				stop				
+	
+# Config load
+on skript start:
+	send "&8Unique Parkour wymaga wersji Skript Beta 10 ..." to the console
+	wait 1 seconds
+	send "&8Serwer pracuje na wersji: %skript version%" to the console
+	send "" to the console
+	send "&8--------------------------------------------------------------" to the console
+	send "&8|                                                            |" to the console
+	send "&8|                  Enable &9UniqueParkour                  &8|" to the console
+	send "&8|                                                            |" to the console
+	send "&8--------------------------------------------------------------" to the console
+	send "" to the console
+	send "&8Author: &eDzikoysk" to the console
+	send "&8Version: &7{@version}" to the console
+	send "" to the console
+	set {parkour.config.tpCooldown} to {@tpCooldown}
+	set {parkour.config.tpLobby} to {@tpLobby}
+	set {parkour.config.xpTimmer} to {@xpTimmer}
+
+on skript load:
+	set {parkour.config.tpCooldown} to {@tpCooldown}
+	set {parkour.config.tpLobby} to {@tpLobby}
+	set {parkour.config.xpTimmer} to {@xpTimmer}
+
+on command /parkour reload:
+	send "{@tag} &aReload ..."
+	wait 1 tick
+	make console execute command "skirpt reload Parkour"
+	
+on command /pk reload:
+	send "{@tag} &aReload ..."
+	wait 1 tick
+	make console execute command "skirpt reload Parkour"
+	
+on command /reload:
+	wait 1 tick
+	make console execute command "skirpt reload Parkour"
+	
+on command /pl:
+	send "&aUniqueParkour"
+		
+on command /plugin:
+	send "&aUniqueParkour"
+	
+on command /plugins:
+	send "&aUniqueParkour"
+
+# Author & Test Command
+command /dzikoysktest:
+	trigger:
+		set {_dzikoysk} to "%name of player%"
+		if {_dzikoysk} is "Dzikoysk":
+			send "&cWitaj Dzikoysk! Ten serwer oparty jest o: &9UniqueParkour"
+		send "&c* Dzikoysk say:"
+		send "&8----------------------------"
+		send "&8Serwerowa wersja Skript: %skript version%"
+		send "&8Wymagana: Skript Beta 10"
+		send "&8----------------------------"
+		send "&8Wersja skryptu: {@version}"
+		send "&8----------------------------"
+		send "&8[Args] = None ="
+		stop
+
+# Walking:
+# - Start
+on walking on stone brick:
+	if {parkour.player.%name of player%.parkour} is true:
+		if block 2 under player is command block:
+			if {parkour.player.%name of player%.start} is false:
+				set {parkour.player.%name of player%.start} to true
+				if {parkour.config.xpTimmer} is true:
+					set {parkour.player.%name of player%.timmer} to true
+					send "{@c1}Start! Czas jest liczony!"
+					stop
+				else:
+					send "{@c1}Start!"
+					stop
+					
+# - Meta
+on walking on double stone slab:
+	if {parkour.player.%name of player%.parkour} is true:
+		if block 2 under player is command block:
+			if {parkour.player.%name of player%.start} is true:
+				set {parkour.player.%name of player%.start} to false
+				set {parkour.player.%name of player%.parkour} to false
+				if {parkour.config.xpTimmer} is true:
+					set {parkour.player.%name of player%.timmer} to false
+					if {parkour.config.tpLobby} is true:
+						teleport player to {parkour.lobby}
+					if {parkour.config.tpLobby} is false:
+						teleport player to {parkour.player.%name of player%.back}
+						clear {parkour.player.%name of player%.back}
+					send "{@c1}Ukonczono parkour w czasie: {@c2}%{parkour.player.%name of player%.timmer-sec}%,%{parkour.player.%name of player%.timmer-mili}% {@c1}(s)"
+					set the player's level to 0
+					set level progress of the player to 0.0
+					set {parkour.player.%name of player%.timmer-sec} to 0
+					set {parkour.player.%name of player%.timmer-mili} to 0
+					clear {parkour.player.%name of player%.parkour.name}
+					clear {parkour.player.%name of player%.back}
+					stop
+				else:
+					send "{@c1}Ukonczono parkour!"
+					stop 				
+
+# Fall					
+on walking on any wool or stone or grass or glass or water or lava or any wood or sand or dirt:
+	if block 2 under player is command block:
+		if {parkour.player.%name of player%.parkour} is true:
+			teleport player to {parkour.parkour.%{parkour.player.%name of player%.parkour.name}%.spawn}
+			set the player's level to 0
+			set level progress of the player to 0.0
+			set {parkour.player.%name of player%.timmer-sec} to 0
+			set {parkour.player.%name of player%.timmer-mili} to 0
+			stop
+				
+# Timmer								
+every 0.1 second:
+	if {parkour.config.xpTimmer} is true:
+		loop all players:
+			if {parkour.player.%loop-player%.start} is true:
+				add 1 to {parkour.player.%loop-player%.timmer-mili}
+				add 0.2 to level progress of the loop-player
+				if {parkour.player.%loop-player%.timmer-mili} is 10:
+					set level progress of the loop-player to 0.0
+					set {parkour.player.%loop-player%.timmer-mili} to 0
+					add 1 to {parkour.player.%loop-player%.timmer-sec}
+					set the loop-player's level to {parkour.player.%loop-player%.timmer-sec}
+					
+# Signs:
+# - Ustawienie
+On sign change:
+	if line 1 is "{@sign.tag}":
+		if player has permissions "parkour.sign.create" or "parkour.sign.*" or "parkour.admin":
+			if line 2 is not "Dolacz" or "Join" or "" or "Leave" or "Wyjdz" or "Opusc":
+				send "{@tag} {@error}Wpisz odpowiednie polecenie w 2 linii!"
+				cancel event
+				stop
+			if line 2 is "":
+				if line 3 is "Leave" or "Wyjdz" or "Opusc":
+					send "{@tag} {@c1}Ustawiono tabliczke do opuszczania parkoura"
+					stop
+				else if line 3 is set:
+					if {parkour.parkour.%line 3%.parkour} is true:
+						send "{@tag} {@c1}Ustawiono tabliczke dla parkoura {@c2}%line 3%{@c1}!"
+						stop
+					else:	
+						send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+						cancel event
+						stop
+				else:	
+					send "{@tag} {@error}Zle uzupelniona 3 linia!"
+					cancel event
+					stop
+			if line 3 is "":
+				if {parkour.parkour.%line 3%.parkour} is true:
+					send "{@tag} {@c1}Ustawiono tabliczke dla parkoura {@c2}%line 3%{@c1}!"
+					stop
+				else:
+					send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+					cancel event
+					stop
+
+# - Rightcllick					
+on rightclick on sign:
+	if line 1 of clicked block is "{@sign.tag}":
+		if line 2 of clicked block is "Join" or "Dolacz":
+			if line 3 of clicked block is set:
+				if player has permissions "parkour.sign.join" or "parkour.sign.*" or "parkour.admin" or "parkour.default":
+					if {parkour.parkour.%line 3 of clicked block%.parkour} is true:
+						if {parkour.parkour.%line 3 of clicked block%.endset} is true:
+							set {parkour.player.%name of player%.back} to location of player
+							wait 1 tick
+							set {parkour.player.%name of player%.lvl} to player's level
+							teleport player to {parkour.parkour.%line 3 of clicked block%.spawn}
+							set {parkour.player.%name of player%.parkour} to true
+							set {parkour.player.%name of player%.parkour.name} to "%line 3 of clicked block%"
+							send "{@tag} {@c1}Witaj na parkourze!"
+							stop
+						else:
+							send "{@tag} {@error}Nie mozna dolaczyc, poniewaz parkour nie zostal jeszcze skonfigurowany!"
+							stop
+					else:
+						send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+						stop
+				else:
+					send {@permissions}
+					stop
+			else:
+				send "{@tag} {@error}Linia 3 nie ustawiona!"
+				stop
+		else if line 2 of clicked block is "Leave" or "Opusc" or "Wyjdz":
+			if player has permissions "parkour.sign.leave" or "parkour.sign.*" or "parkour.admin" or "parkour.default":
+				if {parkour.player.%name of player%.parkour} is true:
+					set {parkour.player.%name of player%.parkour} to false
+					if {parkour.config.tpLobby} is true:
+						teleport player to {parkour.lobby}
+					if {parkour.config.tpLobby} is false:
+						teleport player to {parkour.player.%name of player%.back}
+					clear {parkour.player.%name of player%.parkour.name}
+					clear {parkour.player.%name of player%.back}
+					set the player's level to 0
+					set level progress of the player to 0.0
+					set {parkour.player.%name of player%.timmer-sec} to 0
+					set {parkour.player.%name of player%.timmer-mili} to 0
+					set the player's level to {parkour.player.%name of player%.lvl}
+					clear {parkour.player.%name of player%.lvl}
+					send "{@tag} {@c1}Opuszczono parkour!"
+					stop
+				else:
+					send "{@tag} {@error}Nie jestes na parkourze!"
+					stop
+			else:
+				send {@permissions}
+				stop
+		else if line 2 of clicked block is "":
+			if line 3 of clicked block is "Leave" or "Opusc" or "Wyjdz":
+				if player has permissions "parkour.sign.leave" or "parkour.sign.*" or "parkour.admin" or "parkour.default":
+					if {parkour.player.%name of player%.parkour} is true:
+						set {parkour.player.%name of player%.parkour} to false
+						if {parkour.config.tpLobby} is true:
+							teleport player to {parkour.lobby}
+						if {parkour.config.tpLobby} is false:
+							teleport player to {parkour.player.%name of player%.back}
+						clear {parkour.player.%name of player%.parkour.name}
+						clear {parkour.player.%name of player%.back}
+						set the player's level to 0
+						set level progress of the player to 0.0
+						set {parkour.player.%name of player%.timmer-sec} to 0
+						set {parkour.player.%name of player%.timmer-mili} to 0
+						set the player's level to {parkour.player.%name of player%.lvl}
+						clear {parkour.player.%name of player%.lvl}
+						send "{@tag} {@c1}Opuszczono parkour!"
+						stop
+					else:
+						send "{@tag} {@error}Nie jestes na parkourze!"
+						stop
+				else:
+					send {@permissions}
+					stop
+			else:
+				send "{@tag} {@error}Linia 3 nie ustawiona!"
+				stop
+	
+	
+	
