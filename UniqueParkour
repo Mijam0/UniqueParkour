@@ -312,11 +312,11 @@ on skript start:
 	send "" to the console
 	send "&8--------------------------------------------------------------" to the console
 	send "&8|                                                            |" to the console
-	send "&8|                  Enable &9UniqueParkour                  &8|" to the console
+	send "&8|                  Enable &bUniqueParkour                  &8|" to the console
 	send "&8|                                                            |" to the console
 	send "&8--------------------------------------------------------------" to the console
 	send "" to the console
-	send "&8Author: &eDzikoysk" to the console
+	send "&8Author: &bDzikoysk" to the console
 	send "&8Version: &7{@version}" to the console
 	send "" to the console
 	set {parkour.config.tpCooldown} to {@tpCooldown}
