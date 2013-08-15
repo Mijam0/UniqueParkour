@@ -1,7 +1,7 @@
 #---------------------#
 # Script by Dzikoysk  #
 # Name: UniqueParkour #
-# Version: 0.1 Build  #
+# Version: 0.2 Build  #
 # Skript: Beta 10     #
 #---------------------#
 
@@ -82,6 +82,12 @@ options:
 	# Czy wlaczyc cooldown przed teleportacja:
 	tpCooldown: false
 
+	# Czy trzeba czekać przed ponownym wejściem na parkour
+	tpJoinCooldown: false
+
+	# Ile czasu trzeba czekać
+	tpJoinTime: 1 hour
+
 	
 	
 	
@@ -105,7 +111,7 @@ variables:
 	
 # Manage options
 options:
-	version: 0.1 Build
+	version: 0.2 Build
 	permissions: "{@error}Nie masz uprawnien do tej komendy"	
 
 # Basic command	
@@ -189,14 +195,23 @@ command /parkour [<text>] [<text>]:
 				if arg 2 is set:
 					if {parkour.parkour.%arg 2%.parkour} is true:
 						if {parkour.parkour.%arg 2%.endset} is true:
+							if {parkour.config.tpJoinCooldown} is true:
+								if difference between {parkour.player.%name of player%.lu.%arg 2%} and now is less than {@tpJoinTime}:
+									send "{@tag} {@error} Musisz odczekac {@c2}%difference between {parkour.player.%name of player%.lu.%arg 2%} {@error} and now% aby ponownie skorzystac z tego parkouru"
+									stop
 							if {parkour.config.tpCooldown} is true:
 								set {parkour.player.%name of player%.back} to location of player
 								wait 1 tick
 								set {parkour.player.%name of player%.lvl} to player's level
+								loop all items in the player's inventory:
+									add the loop-item to {inventory.%name of player%::*}
+									remove loop-item from player's inventory
 								teleport player to {parkour.parkour.%arg 2%.spawn}
 								set {parkour.player.%name of player%.parkour} to true
 								set {parkour.player.%name of player%.parkour.name} to "%arg 2%"
+								set {parkour.player.%name of player%.start} to false
 								send "{@tag} {@c1}Witaj na parkourze!"
+								set {parkour.player.%name of player%.lu.%arg 2%} to now
 								stop
 							else:
 								send "&7Czekaj 5 sekund"
@@ -207,7 +222,11 @@ command /parkour [<text>] [<text>]:
 								set {parkour.player.%name of player%.back} to location of player
 								set {parkour.player.%name of player%.parkour} to true
 								set {parkour.player.%name of player%.parkour.name} to "%arg 2%"
+								loop all items in the player's inventory:
+									add the loop-item to {inventory.%name of player%::*}
+									remove loop-item from player's inventory
 								teleport player to {parkour.parkour.%arg 2%.spawn}
+								set {parkour.player.%name of player%.start} to false
 								remove blindness from player
 								remove slowness from player
 								send "{@tag} {@c1}Witaj na parkourze!"
@@ -240,6 +259,9 @@ command /parkour [<text>] [<text>]:
 					set {parkour.player.%name of player%.timmer-mili} to 0
 					set the player's level to {parkour.player.%name of player%.lvl}
 					clear {parkour.player.%name of player%.lvl}
+					loop {inventory.%name of player%::*}:
+						add loop-value to the player
+					clear {inventory.%name of player%::*}
 					send "{@tag} {@c1}Opuszczono parkour!"
 					stop
 				else:
@@ -255,6 +277,7 @@ command /parkour [<text>] [<text>]:
 				set {parkour.config.tpCooldown} to {@tpCooldown}
 				set {parkour.config.tpLobby} to {@tpLobby}
 				set {parkour.config.xpTimmer} to {@xpTimmer}
+				set {parkour.config.tpJoinCooldown} to {@tpJoinCooldown}
 				wait 1 tick
 				send "{@tag} &aPrzeladowano"
 				stop
@@ -264,6 +287,17 @@ command /parkour [<text>] [<text>]:
 			send " &7Nazwa: &aUniqueParkour"
 			send "&7 &7&nStrona:&a &nwww.Dzikoysk.net"
 			send "&8--------------------------------"
+			stop
+		if arg 1 is "help" or "pomoc":
+			send "/parkour list – Lista parkourów"
+			send "/parkour join [name] – Dolączanie do parkoura"
+			send "/parkour leave – Wyjście z parkoura"
+			send "/parkour setlobby – Ustawienie lobby"
+			send "/parkour create [name] – Stworzenie parkoura"
+			send "/parkour setspawn [name] – Ustawienie spawnu dla parkoura"
+			send "/parkour delete [nazwa] – Usunięcie parkoura"
+			send "/parkour author – Notka o autorze"
+			send "/parkour reload – Przeładowanie skryptu"
 			stop
 		if arg 1 is not "list" or "lista" or "create" or "stworz" or "delete" or "usun" or "ustawlobby" or "setlobby" or "setspawn" or "ustawspawn":
 			if arg 1 is not "lobby" or "join" or "dolacz" or "leave" or "wyjdz" or "opusc" or "reload" or "przeladuj" or "info" or "author" or "autor":
@@ -288,11 +322,13 @@ on skript start:
 	set {parkour.config.tpCooldown} to {@tpCooldown}
 	set {parkour.config.tpLobby} to {@tpLobby}
 	set {parkour.config.xpTimmer} to {@xpTimmer}
+	set {parkour.config.tpJoinCooldown} to {@tpJoinCooldown}
 
 on skript load:
 	set {parkour.config.tpCooldown} to {@tpCooldown}
 	set {parkour.config.tpLobby} to {@tpLobby}
 	set {parkour.config.xpTimmer} to {@xpTimmer}
+	set {parkour.config.tpJoinCooldown} to {@tpJoinCooldown}
 
 on command /parkour reload:
 	send "{@tag} &aReload ..."
@@ -362,6 +398,10 @@ on walking on double stone slab:
 					if {parkour.config.tpLobby} is false:
 						teleport player to {parkour.player.%name of player%.back}
 						clear {parkour.player.%name of player%.back}
+					loop {inventory.%name of player%::*}:
+						give loop-value to player
+					clear {inventory.%name of player%::*}
+					clear {inventory.%name of player%::*}
 					send "{@c1}Ukonczono parkour w czasie: {@c2}%{parkour.player.%name of player%.timmer-sec}%,%{parkour.player.%name of player%.timmer-mili}% {@c1}(s)"
 					set the player's level to 0
 					set level progress of the player to 0.0
@@ -371,6 +411,9 @@ on walking on double stone slab:
 					clear {parkour.player.%name of player%.back}
 					stop
 				else:
+					loop {inventory.%name of player%::*}:
+						give loop-value to player
+					clear {inventory.%name of player%::*}
 					send "{@c1}Ukonczono parkour!"
 					stop 				
 
@@ -423,13 +466,17 @@ On sign change:
 					send "{@tag} {@error}Zle uzupelniona 3 linia!"
 					cancel event
 					stop
-			if line 3 is "":
-				if {parkour.parkour.%line 3%.parkour} is true:
-					send "{@tag} {@c1}Ustawiono tabliczke dla parkoura {@c2}%line 3%{@c1}!"
-					stop
+			if line 2 is "Join" or "Dolacz":
+				if line 3 is set:
+					if {parkour.parkour.%line 3%.parkour} is true:
+						send "{@tag} {@c1}Ustawiono tabliczke dla parkoura {@c2}%line 3%{@c1}!"
+						stop
+					else:
+						send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
+						cancel event
+						stop
 				else:
-					send "{@tag} {@error}Parkour o takiej nazwie nie istnieje!"
-					cancel event
+					send "{@tag} {@error} Podaj nazwe parkoura w 3 linii!"
 					stop
 
 # - Rightcllick					
@@ -440,13 +487,22 @@ on rightclick on sign:
 				if player has permissions "parkour.sign.join" or "parkour.sign.*" or "parkour.admin" or "parkour.default":
 					if {parkour.parkour.%line 3 of clicked block%.parkour} is true:
 						if {parkour.parkour.%line 3 of clicked block%.endset} is true:
+							if {parkour.config.tpJoinCooldown} is true:
+								if difference between {parkour.player.%name of player%.lu.%line 3 of clicked block%} and now is less than {@tpJoinTime}:
+									send "{@tag} {@error} Musisz odczekac {@c2}%difference between {parkour.player.%name of player%.lu.%line 3 of clicked block%} {@error} and now% aby ponownie skorzystac z tego parkouru"
+									stop
 							set {parkour.player.%name of player%.back} to location of player
 							wait 1 tick
 							set {parkour.player.%name of player%.lvl} to player's level
+							loop all items in the player's inventory:
+								add the loop-item to {inventory.%name of player%::*}
+								remove loop-item from player's inventory
 							teleport player to {parkour.parkour.%line 3 of clicked block%.spawn}
 							set {parkour.player.%name of player%.parkour} to true
 							set {parkour.player.%name of player%.parkour.name} to "%line 3 of clicked block%"
+							set {parkour.player.%name of player%.start} to false
 							send "{@tag} {@c1}Witaj na parkourze!"
+							set {parkour.player.%name of player%.lu.%line 3 of clicked block%} to now
 							stop
 						else:
 							send "{@tag} {@error}Nie mozna dolaczyc, poniewaz parkour nie zostal jeszcze skonfigurowany!"
@@ -476,6 +532,11 @@ on rightclick on sign:
 					set {parkour.player.%name of player%.timmer-mili} to 0
 					set the player's level to {parkour.player.%name of player%.lvl}
 					clear {parkour.player.%name of player%.lvl}
+					clear {parkour.player.%name of player%.lvl}
+					loop {inventory.%name of player%::*}:
+						give loop-value to player
+					clear {inventory.%name of player%::*}
+					clear {inventory.%name of player%::*}
 					send "{@tag} {@c1}Opuszczono parkour!"
 					stop
 				else:
@@ -501,6 +562,11 @@ on rightclick on sign:
 						set {parkour.player.%name of player%.timmer-mili} to 0
 						set the player's level to {parkour.player.%name of player%.lvl}
 						clear {parkour.player.%name of player%.lvl}
+						clear {parkour.player.%name of player%.lvl}
+						loop {inventory.%name of player%::*}:
+							give loop-value to player
+						clear {inventory.%name of player%::*}
+						clear {inventory.%name of player%::*}
 						send "{@tag} {@c1}Opuszczono parkour!"
 						stop
 					else:
